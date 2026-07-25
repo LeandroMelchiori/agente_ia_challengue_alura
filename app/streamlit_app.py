@@ -1,11 +1,12 @@
 """
 Interfaz de chat del agente TechRetAI.
 
-Chat web con estilo "asistente de IA": varias conversaciones con historial en
-la barra lateral, marca propia, preguntas de ejemplo, fuentes citadas y feedback.
+Chat web estilo asistente de IA: varias conversaciones con historial en la barra
+lateral (crear, renombrar, eliminar), marca propia, preguntas de ejemplo,
+fuentes citadas y feedback.
 
 Nota: las conversaciones viven en la sesión del navegador (se pierden al recargar
-o reiniciar el servidor). Alcanza para el uso conversacional dentro de una visita.
+o reiniciar el servidor).
 
 Ejecutar con:  streamlit run app/streamlit_app.py
 """
@@ -16,7 +17,6 @@ from pathlib import Path
 
 import streamlit as st
 
-# Permite importar el paquete src cuando Streamlit ejecuta este archivo.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src import vectorstore  # noqa: E402
@@ -45,13 +45,20 @@ st.markdown(
     .marca {{ font-size: 2.5rem; font-weight: 800; line-height: 1.1; margin-bottom: .2rem; }}
     .marca .ai {{ color: {ACCENT}; }}
     .subt {{ color: #9AA0A6; font-size: 1.02rem; margin-bottom: .3rem; }}
-    div[data-testid="stButton"] > button {{
+    /* Botones "secundarios" con aspecto de chip/lista */
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) {{
         text-align: left; border: 1px solid #2A2F3A; background: #161A23;
-        border-radius: 10px; padding: .55rem .8rem; font-weight: 500;
-        transition: border-color .15s ease; white-space: nowrap; overflow: hidden;
-        text-overflow: ellipsis;
+        border-radius: 10px; padding: .5rem .7rem; font-weight: 500;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        transition: border-color .15s ease;
     }}
-    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT}; }}
+    div[data-testid="stButton"] > button:not([kind="primary"]):hover {{ border-color: {ACCENT}; color: {ACCENT}; }}
+    /* Botón "primario" = conversación activa */
+    div[data-testid="stButton"] > button[kind="primary"],
+    div[data-testid="stButton"] > button[data-testid="stBaseButton-primary"] {{
+        text-align: left; border-radius: 10px; padding: .5rem .7rem; font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -61,7 +68,7 @@ st.markdown(
 # --------------------------------------------------------------------------
 #  Estado: varias conversaciones
 # --------------------------------------------------------------------------
-def nueva_conversacion() -> int:
+def _crear_conversacion() -> int:
     cid = st.session_state.contador
     st.session_state.contador += 1
     st.session_state.conversaciones[cid] = {"titulo": "Nueva conversación", "mensajes": []}
@@ -69,14 +76,32 @@ def nueva_conversacion() -> int:
     return cid
 
 
+def ir_a_nueva() -> None:
+    """Va a una conversación vacía (reutiliza si ya hay una, para no duplicar)."""
+    for cid, c in st.session_state.conversaciones.items():
+        if not c["mensajes"]:
+            st.session_state.conv_actual = cid
+            return
+    _crear_conversacion()
+
+
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {}
     st.session_state.contador = 0
-    nueva_conversacion()
+    st.session_state.renombrando = None
+    _crear_conversacion()
 
 
 def conv_actual() -> dict:
     return st.session_state.conversaciones[st.session_state.conv_actual]
+
+
+def eliminar(cid: int) -> None:
+    st.session_state.conversaciones.pop(cid, None)
+    if st.session_state.get("renombrando") == cid:
+        st.session_state.renombrando = None
+    if st.session_state.conv_actual == cid:
+        ir_a_nueva()
 
 
 # --------------------------------------------------------------------------
@@ -85,7 +110,6 @@ def conv_actual() -> dict:
 def procesar(pregunta: str) -> None:
     conv = conv_actual()
     conv["mensajes"].append({"rol": "user", "texto": pregunta})
-    # La primera pregunta le da título a la conversación.
     if conv["titulo"] == "Nueva conversación":
         conv["titulo"] = pregunta[:38] + ("…" if len(pregunta) > 38 else "")
     try:
@@ -114,24 +138,57 @@ def procesar(pregunta: str) -> None:
 #  Barra lateral: marca + lista de conversaciones + estado
 # --------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown(
-        f"### 🤖 TechRet<span style='color:{ACCENT}'>AI</span>", unsafe_allow_html=True
-    )
+    st.markdown(f"### 🤖 TechRet<span style='color:{ACCENT}'>AI</span>", unsafe_allow_html=True)
     st.caption("Asistente corporativo de TechRetail Solutions")
 
     if st.button("➕  Nueva conversación", use_container_width=True):
-        nueva_conversacion()
+        ir_a_nueva()
         st.rerun()
 
     st.markdown("**Conversaciones**")
-    # Más recientes primero.
-    for cid in reversed(list(st.session_state.conversaciones.keys())):
+
+    # Solo se listan las conversaciones que ya tienen contenido (más recientes primero).
+    listadas = [
+        cid for cid in reversed(list(st.session_state.conversaciones.keys()))
+        if st.session_state.conversaciones[cid]["mensajes"]
+    ]
+
+    if not listadas:
+        st.caption("_No hay conversaciones todavía._")
+
+    for cid in listadas:
         conv = st.session_state.conversaciones[cid]
         activa = cid == st.session_state.conv_actual
-        etiqueta = ("🟢 " if activa else "💬 ") + conv["titulo"]
-        if st.button(etiqueta, key=f"conv_{cid}", use_container_width=True):
-            st.session_state.conv_actual = cid
-            st.rerun()
+
+        if st.session_state.renombrando == cid:
+            # Modo edición del nombre.
+            nuevo = st.text_input(
+                "Nuevo nombre", value=conv["titulo"], key=f"rn_{cid}",
+                label_visibility="collapsed",
+            )
+            c1, c2 = st.columns(2)
+            if c1.button("Guardar", key=f"save_{cid}", use_container_width=True):
+                conv["titulo"] = nuevo.strip() or conv["titulo"]
+                st.session_state.renombrando = None
+                st.rerun()
+            if c2.button("Cancelar", key=f"cancel_{cid}", use_container_width=True):
+                st.session_state.renombrando = None
+                st.rerun()
+        else:
+            # Fila normal: seleccionar | renombrar | eliminar.
+            sel, ren, dele = st.columns([0.7, 0.15, 0.15])
+            if sel.button(
+                conv["titulo"], key=f"conv_{cid}", use_container_width=True,
+                type="primary" if activa else "secondary",
+            ):
+                st.session_state.conv_actual = cid
+                st.rerun()
+            if ren.button("✏️", key=f"ed_{cid}", help="Renombrar"):
+                st.session_state.renombrando = cid
+                st.rerun()
+            if dele.button("🗑️", key=f"del_{cid}", help="Eliminar"):
+                eliminar(cid)
+                st.rerun()
 
     st.divider()
     st.markdown("**Estado**")
@@ -149,7 +206,7 @@ with st.sidebar:
 
 
 # --------------------------------------------------------------------------
-#  Encabezado
+#  Encabezado + conversación activa
 # --------------------------------------------------------------------------
 st.markdown(
     "<div class='marca'>TechRet<span class='ai'>AI</span></div>"
@@ -160,7 +217,6 @@ st.write("")
 
 conv = conv_actual()
 
-# Pantalla de bienvenida con ejemplos (solo si la conversación está vacía).
 if not conv["mensajes"]:
     st.markdown("##### 💡 Probá con una de estas preguntas")
     cols = st.columns(2)
@@ -168,7 +224,6 @@ if not conv["mensajes"]:
         if cols[i % 2].button(ejemplo, key=f"ej_{i}", use_container_width=True):
             procesar(ejemplo)
 
-# Historial de la conversación activa.
 for i, msg in enumerate(conv["mensajes"]):
     avatar = "🤖" if msg["rol"] == "assistant" else "🧑"
     with st.chat_message(msg["rol"], avatar=avatar):
@@ -195,9 +250,6 @@ for i, msg in enumerate(conv["mensajes"]):
                 st.rerun()
 
 
-# --------------------------------------------------------------------------
-#  Entrada del usuario
-# --------------------------------------------------------------------------
 pregunta = st.chat_input("Escribí tu pregunta...")
 if pregunta:
     procesar(pregunta)
