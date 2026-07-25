@@ -17,7 +17,7 @@ mediante **RAG** (*Retrieval-Augmented Generation*), sin inventar información.
 
 **TechRetAI está desplegado y accesible en vivo:** **[https://techretai.sachadev.me](https://techretai.sachadev.me)**
 
-![TechRetAI en producción sobre OCI](docs/img/demo_oci.png)
+![TechRetAI en producción sobre OCI](docs/img/demo_agente.png)
 
 > Desplegado en una VM de **Oracle Cloud Infrastructure** (Always Free), servido
 > por Streamlit detrás de **Caddy** (HTTPS con certificado de Let's Encrypt) y
