@@ -13,14 +13,15 @@ mediante **RAG** (*Retrieval-Augmented Generation*), sin inventar información.
 
 ---
 
-## 📸 Demostración en la nube (OCI)
+## 🌐 En producción
 
-> _Reemplazá esta sección con la captura o el video del agente ejecutándose en
-> Oracle Cloud Infrastructure._
->
-> ```
-> ![Agente ejecutándose en OCI](docs/img/demo_oci.png)
-> ```
+**TechRetAI está desplegado y accesible en vivo:** **[https://techretai.sachadev.me](https://techretai.sachadev.me)**
+
+![TechRetAI en producción sobre OCI](docs/img/demo_oci.png)
+
+> Desplegado en una VM de **Oracle Cloud Infrastructure** (Always Free), servido
+> por Streamlit detrás de **Caddy** (HTTPS con certificado de Let's Encrypt) y
+> actualizado automáticamente vía **GitHub Actions** en cada push a `main`.
 
 ---
 
