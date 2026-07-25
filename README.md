@@ -1,6 +1,6 @@
 # 🤖 TechRetAI — Asistente RAG Corporativo
 
-[![Deploy a OCI](https://github.com/LeandroMelchiori/agente_ia_challengue_alura/actions/workflows/deploy.yml/badge.svg)](https://github.com/LeandroMelchiori/agente_ia_challengue_alura/actions/workflows/deploy.yml)
+[![Deploy a OCI](https://github.com/LeandroMelchiori/techretai-asistente-rag-corporativo/actions/workflows/deploy.yml/badge.svg)](https://github.com/LeandroMelchiori/techretai-asistente-rag-corporativo/actions/workflows/deploy.yml)
 
 > **TechRetAI** es el asistente conversacional interno de TechRetail Solutions
 > S.R.L.: responde preguntas de los colaboradores basándose en la documentación
@@ -90,7 +90,7 @@ Cada componente del pipeline vive en un módulo con una única responsabilidad:
 
 ```bash
 git clone <url-del-repositorio>
-cd agente_ia_challengue_alura
+cd techretai-asistente-rag-corporativo
 
 python -m venv .venv && source .venv/bin/activate   # en Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -145,7 +145,7 @@ Las más importantes:
 ## 📁 Estructura del proyecto
 
 ```
-agente_ia_challengue_alura/
+techretai-asistente-rag-corporativo/
 ├── documentos/              # Base de conocimiento (8 formatos, 7 categorías)
 ├── src/
 │   ├── config.py            # Configuración central
