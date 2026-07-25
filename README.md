@@ -1,5 +1,7 @@
 # 🤖 TechRetAI — Asistente RAG Corporativo
 
+[![Deploy a OCI](https://github.com/LeandroMelchiori/agente_ia_challengue_alura/actions/workflows/deploy.yml/badge.svg)](https://github.com/LeandroMelchiori/agente_ia_challengue_alura/actions/workflows/deploy.yml)
+
 > **TechRetAI** es el asistente conversacional interno de TechRetail Solutions
 > S.R.L.: responde preguntas de los colaboradores basándose en la documentación
 > de la empresa, citando siempre la fuente.
