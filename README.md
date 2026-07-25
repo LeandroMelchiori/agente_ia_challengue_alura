@@ -37,9 +37,12 @@ mediante **RAG** (*Retrieval-Augmented Generation*), sin inventar información.
 - **Citación de fuentes:** cada respuesta indica de qué documento salió.
 - **Proveedor intercambiable:** Google Gemini (por defecto) u OpenAI, cambiando
   una sola variable de entorno.
-- **Interfaz de chat** simple con historial, fuentes y botones de feedback.
+- **Interfaz de chat** estilo asistente de IA: múltiples conversaciones con
+  historial (crear, renombrar, eliminar), preguntas de ejemplo, fuentes citadas
+  y botones de feedback.
 - **Registro de ejecución** en formato JSON Lines para auditoría.
-- **Listo para OCI:** `Dockerfile` + guía de despliegue en Oracle Cloud.
+- **Desplegado en OCI:** corre en una VM de Oracle Cloud como servicio `systemd`.
+- **CI/CD:** cada push a `main` se despliega solo en la VM vía GitHub Actions.
 
 ---
 
@@ -68,7 +71,8 @@ Cada componente del pipeline vive en un módulo con una única responsabilidad:
 | Recuperación (RAG) | `src/vectorstore.py::query`, `src/agent.py` |
 | Producción y validación | `src/agent.py` (prompt, umbral, fallback) |
 | Interfaz | `app/streamlit_app.py` |
-| Despliegue en OCI | `Dockerfile`, `docs/deploy_oci.md` |
+| Despliegue en OCI | `docs/deploy_oci.md`, `deploy/techretai.service`, `Dockerfile` |
+| CI/CD (auto-deploy) | `.github/workflows/deploy.yml` |
 | Registro de ejecución | `src/logging_utils.py`, `logs/consultas.jsonl` |
 
 ---
@@ -164,9 +168,13 @@ agente_ia_challengue_alura/
 
 ## ☁️ Despliegue en OCI
 
-El agente se empaqueta con Docker y se despliega en **Oracle Cloud
-Infrastructure**. Ver la guía paso a paso en **[`docs/deploy_oci.md`](docs/deploy_oci.md)**
-(Container Registry + Container Instances + Object Storage + Vault).
+El agente está desplegado en **Oracle Cloud Infrastructure**, sobre una VM
+Compute (Always Free) donde corre como **servicio `systemd`**
+(`deploy/techretai.service`). El pipeline de **GitHub Actions**
+(`.github/workflows/deploy.yml`) actualiza la VM automáticamente en cada push a
+`main`. La guía completa está en **[`docs/deploy_oci.md`](docs/deploy_oci.md)**.
+
+También puede ejecutarse con Docker:
 
 ```bash
 docker build -t techretail-agente .
