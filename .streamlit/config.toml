@@ -1,0 +1,11 @@
+# Tema visual del asistente TechRetAI.
+[theme]
+base = "dark"
+primaryColor = "#12B5A5"            # Verde-azulado: acento tecnológico y sobrio.
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#161A23"
+textColor = "#E8EAED"
+font = "sans serif"
+
+[server]
+headless = true

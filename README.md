@@ -1,7 +1,8 @@
-# 🤖 Agente RAG Corporativo — TechRetail Solutions S.R.L.
+# 🤖 TechRetAI — Asistente RAG Corporativo
 
-> Asistente conversacional interno que responde preguntas de los colaboradores
-> basándose en la documentación de la empresa, citando siempre la fuente.
+> **TechRetAI** es el asistente conversacional interno de TechRetail Solutions
+> S.R.L.: responde preguntas de los colaboradores basándose en la documentación
+> de la empresa, citando siempre la fuente.
 
 **TechRetail Solutions S.R.L.** es una plataforma SaaS de e-commerce para PyMEs
 y emprendedores en Argentina. Este asistente ingiere la documentación interna en
