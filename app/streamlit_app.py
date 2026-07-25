@@ -1,12 +1,11 @@
 """
 Interfaz de chat del agente TechRetAI.
 
-Chat web simple pero cuidado, con:
-- Marca del asistente (TechRetAI) y aviso claro de que es un agente de IA.
-- Pantalla de bienvenida con preguntas de ejemplo clickeables.
-- Historial de conversación dentro de la sesión.
-- Visualización de las fuentes/documentos citados en cada respuesta.
-- Botones de feedback (👍 / 👎) que quedan registrados en el log.
+Chat web con estilo "asistente de IA": varias conversaciones con historial en
+la barra lateral, marca propia, preguntas de ejemplo, fuentes citadas y feedback.
+
+Nota: las conversaciones viven en la sesión del navegador (se pierden al recargar
+o reiniciar el servidor). Alcanza para el uso conversacional dentro de una visita.
 
 Ejecutar con:  streamlit run app/streamlit_app.py
 """
@@ -29,7 +28,6 @@ ACCENT = "#12B5A5"
 
 st.set_page_config(page_title="TechRetAI", page_icon="🤖", layout="centered")
 
-# Preguntas sugeridas para la pantalla de bienvenida (una por área clave).
 EJEMPLOS = [
     "¿Cuántos días de vacaciones me corresponden con 6 años de antigüedad?",
     "¿Qué comisión cobra MercadoPago por tarjeta de crédito?",
@@ -44,19 +42,16 @@ EJEMPLOS = [
 st.markdown(
     f"""
     <style>
-    /* Encabezado de marca */
     .marca {{ font-size: 2.5rem; font-weight: 800; line-height: 1.1; margin-bottom: .2rem; }}
     .marca .ai {{ color: {ACCENT}; }}
     .subt {{ color: #9AA0A6; font-size: 1.02rem; margin-bottom: .3rem; }}
-    /* Botones de ejemplo con aspecto de "chips" */
     div[data-testid="stButton"] > button {{
         text-align: left; border: 1px solid #2A2F3A; background: #161A23;
-        border-radius: 12px; padding: .7rem .9rem; font-weight: 500;
-        transition: border-color .15s ease;
+        border-radius: 10px; padding: .55rem .8rem; font-weight: 500;
+        transition: border-color .15s ease; white-space: nowrap; overflow: hidden;
+        text-overflow: ellipsis;
     }}
-    div[data-testid="stButton"] > button:hover {{
-        border-color: {ACCENT}; color: {ACCENT};
-    }}
+    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT}; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -64,13 +59,81 @@ st.markdown(
 
 
 # --------------------------------------------------------------------------
-#  Barra lateral
+#  Estado: varias conversaciones
+# --------------------------------------------------------------------------
+def nueva_conversacion() -> int:
+    cid = st.session_state.contador
+    st.session_state.contador += 1
+    st.session_state.conversaciones[cid] = {"titulo": "Nueva conversación", "mensajes": []}
+    st.session_state.conv_actual = cid
+    return cid
+
+
+if "conversaciones" not in st.session_state:
+    st.session_state.conversaciones = {}
+    st.session_state.contador = 0
+    nueva_conversacion()
+
+
+def conv_actual() -> dict:
+    return st.session_state.conversaciones[st.session_state.conv_actual]
+
+
+# --------------------------------------------------------------------------
+#  Procesamiento de una pregunta (sobre la conversación activa)
+# --------------------------------------------------------------------------
+def procesar(pregunta: str) -> None:
+    conv = conv_actual()
+    conv["mensajes"].append({"rol": "user", "texto": pregunta})
+    # La primera pregunta le da título a la conversación.
+    if conv["titulo"] == "Nueva conversación":
+        conv["titulo"] = pregunta[:38] + ("…" if len(pregunta) > 38 else "")
+    try:
+        settings.validate()
+        resp = responder(pregunta)
+        registrar(resp)
+    except Exception as e:  # noqa: BLE001
+        conv["mensajes"].append(
+            {"rol": "assistant", "texto": f"⚠️ Ocurrió un error: {e}", "fuentes": []}
+        )
+        st.rerun()
+        return
+    conv["mensajes"].append(
+        {
+            "rol": "assistant",
+            "texto": resp.texto,
+            "fuentes": resp.fuentes,
+            "respuesta_obj": resp,
+            "feedback_dado": False,
+        }
+    )
+    st.rerun()
+
+
+# --------------------------------------------------------------------------
+#  Barra lateral: marca + lista de conversaciones + estado
 # --------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown(f"### 🤖 TechRet<span class='ai' style='color:{ACCENT}'>AI</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"### 🤖 TechRet<span style='color:{ACCENT}'>AI</span>", unsafe_allow_html=True
+    )
     st.caption("Asistente corporativo de TechRetail Solutions")
-    st.divider()
 
+    if st.button("➕  Nueva conversación", use_container_width=True):
+        nueva_conversacion()
+        st.rerun()
+
+    st.markdown("**Conversaciones**")
+    # Más recientes primero.
+    for cid in reversed(list(st.session_state.conversaciones.keys())):
+        conv = st.session_state.conversaciones[cid]
+        activa = cid == st.session_state.conv_actual
+        etiqueta = ("🟢 " if activa else "💬 ") + conv["titulo"]
+        if st.button(etiqueta, key=f"conv_{cid}", use_container_width=True):
+            st.session_state.conv_actual = cid
+            st.rerun()
+
+    st.divider()
     st.markdown("**Estado**")
     st.caption(f"Modelo: `{settings.provider}`")
     try:
@@ -79,10 +142,6 @@ with st.sidebar:
         st.caption("Base de conocimiento: (no inicializada)")
 
     st.divider()
-    if st.button("🧹 Nueva conversación", use_container_width=True):
-        st.session_state.mensajes = []
-        st.rerun()
-
     st.caption(
         "⚠️ Estás conversando con un **agente de IA**. Las respuestas se basan en "
         "documentos internos y pueden contener errores: verificá en la fuente citada."
@@ -99,52 +158,18 @@ st.markdown(
 )
 st.write("")
 
-if "mensajes" not in st.session_state:
-    st.session_state.mensajes = []
+conv = conv_actual()
 
-
-# --------------------------------------------------------------------------
-#  Procesamiento de una pregunta
-# --------------------------------------------------------------------------
-def procesar(pregunta: str) -> None:
-    st.session_state.mensajes.append({"rol": "user", "texto": pregunta})
-    try:
-        settings.validate()
-        resp = responder(pregunta)
-        registrar(resp)  # registro de ejecución
-    except Exception as e:  # noqa: BLE001
-        st.session_state.mensajes.append(
-            {"rol": "assistant", "texto": f"⚠️ Ocurrió un error: {e}", "fuentes": []}
-        )
-        st.rerun()
-        return
-    st.session_state.mensajes.append(
-        {
-            "rol": "assistant",
-            "texto": resp.texto,
-            "fuentes": resp.fuentes,
-            "respuesta_obj": resp,
-            "feedback_dado": False,
-        }
-    )
-    st.rerun()
-
-
-# --------------------------------------------------------------------------
-#  Pantalla de bienvenida (solo sin conversación) con preguntas de ejemplo
-# --------------------------------------------------------------------------
-if not st.session_state.mensajes:
+# Pantalla de bienvenida con ejemplos (solo si la conversación está vacía).
+if not conv["mensajes"]:
     st.markdown("##### 💡 Probá con una de estas preguntas")
     cols = st.columns(2)
     for i, ejemplo in enumerate(EJEMPLOS):
         if cols[i % 2].button(ejemplo, key=f"ej_{i}", use_container_width=True):
             procesar(ejemplo)
 
-
-# --------------------------------------------------------------------------
-#  Historial de conversación
-# --------------------------------------------------------------------------
-for i, msg in enumerate(st.session_state.mensajes):
+# Historial de la conversación activa.
+for i, msg in enumerate(conv["mensajes"]):
     avatar = "🤖" if msg["rol"] == "assistant" else "🧑"
     with st.chat_message(msg["rol"], avatar=avatar):
         st.markdown(msg["texto"])
@@ -155,17 +180,17 @@ for i, msg in enumerate(st.session_state.mensajes):
                         f"- **{f['archivo']}** · _{f['categoria']}_ "
                         f"({f['formato']}) — relevancia {f['relevancia']:.2f}"
                     )
-        # Feedback solo en respuestas del asistente aún sin votar.
         if msg["rol"] == "assistant" and msg.get("respuesta_obj") and not msg.get("feedback_dado"):
             c1, c2, _ = st.columns([1, 1, 8])
-            if c1.button("👍", key=f"up_{i}"):
+            cid = st.session_state.conv_actual
+            if c1.button("👍", key=f"up_{cid}_{i}"):
                 registrar(msg["respuesta_obj"], feedback="positivo")
-                st.session_state.mensajes[i]["feedback_dado"] = True
+                conv["mensajes"][i]["feedback_dado"] = True
                 st.toast("¡Gracias por tu feedback!")
                 st.rerun()
-            if c2.button("👎", key=f"down_{i}"):
+            if c2.button("👎", key=f"down_{cid}_{i}"):
                 registrar(msg["respuesta_obj"], feedback="negativo")
-                st.session_state.mensajes[i]["feedback_dado"] = True
+                conv["mensajes"][i]["feedback_dado"] = True
                 st.toast("Feedback registrado, lo tendremos en cuenta.")
                 st.rerun()
 
