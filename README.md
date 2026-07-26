@@ -208,160 +208,18 @@ ruta.
 
 # 🗺️ Hoja de ruta
 
-La evolución del proyecto está organizada por prioridad. El objetivo no es solo
-agregar funciones, sino convertir la demostración en un sistema RAG medible,
-seguro, observable y defendible técnicamente.
+La evolución del proyecto se resume en diez mejoras prioritarias:
 
-## Fase 1 — Calidad y evaluación del RAG
-
-- [ ] Crear un conjunto de evaluación versionado con preguntas, categorías,
-  documentos esperados, respuestas de referencia y casos que deben activar el
-  fallback.
-- [ ] Medir **Hit Rate@K**, **Recall@K**, **Precision@K** y **MRR** para evaluar la
-  recuperación de fragmentos.
-- [ ] Evaluar si la respuesta se encuentra fundamentada en el contexto
-  recuperado (*groundedness*).
-- [ ] Medir la exactitud de las fuentes mostradas al usuario.
-- [ ] Medir falsos positivos y falsos negativos del fallback.
-- [ ] Registrar latencia por etapa: embedding, recuperación y generación.
-- [ ] Estimar tokens y costo por consulta para cada proveedor.
-- [ ] Incorporar pruebas de regresión para evitar que un cambio de chunking,
-  modelo o prompt reduzca la calidad.
-- [ ] Ejecutar evaluaciones automáticamente en CI con un subconjunto estable de
-  casos.
-
-## Fase 2 — Pruebas automatizadas y calidad de código
-
-- [ ] Agregar pruebas unitarias para loaders, limpieza, chunking, configuración,
-  vectorstore y armado de contexto.
-- [ ] Mockear proveedores de embeddings y generación para evitar consumo de API
-  durante las pruebas.
-- [ ] Agregar pruebas de integración del pipeline completo con una colección
-  Chroma temporal.
-- [ ] Probar archivos vacíos, corruptos, duplicados y formatos no soportados.
-- [ ] Probar consultas sin documentos indexados y errores de proveedor.
-- [ ] Incorporar `pytest`, cobertura mínima y reporte en GitHub Actions.
-- [ ] Agregar linting, formateo y validación de tipos con herramientas como Ruff,
-  Black y mypy.
-
-## Fase 3 — Seguridad frente a prompt injection
-
-- [ ] Tratar el contenido recuperado como **datos no confiables**, nunca como
-  instrucciones para el modelo.
-- [ ] Reforzar el prompt para ignorar órdenes incluidas dentro de documentos.
-- [ ] Crear pruebas contra *prompt injection* directo e indirecto.
-- [ ] Probar intentos de revelar el prompt del sistema, claves, configuración y
-  datos de otras conversaciones.
-- [ ] Detectar y marcar documentos con instrucciones sospechosas durante la
-  ingestión.
-- [ ] Limitar el tamaño del contexto y sanear contenido antes de enviarlo al LLM.
-- [ ] Documentar el modelo de amenazas del sistema.
-
-## Fase 4 — Autenticación y autorización
-
-- [ ] Incorporar autenticación de usuarios.
-- [ ] Implementar roles y permisos por área documental.
-- [ ] Aplicar filtros de autorización durante la recuperación, no solamente en la
-  interfaz.
-- [ ] Registrar quién realizó cada consulta sin exponer información innecesaria.
-- [ ] Agregar cierre de sesión, expiración y protección de sesiones.
-- [ ] Implementar rate limiting y cuotas por usuario.
-- [ ] Preparar una cuenta de demostración separada del entorno administrativo.
-
-## Fase 5 — Privacidad y gestión segura de logs
-
-- [ ] Evitar guardar preguntas y respuestas completas por defecto.
-- [ ] Incorporar anonimización y redacción de emails, teléfonos, documentos y
-  otros datos personales.
-- [ ] Permitir desactivar el registro de contenido mediante configuración.
-- [ ] Definir políticas de retención y eliminación de logs.
-- [ ] Implementar rotación de archivos y permisos restrictivos.
-- [ ] Separar logs técnicos, métricas y auditoría de usuario.
-- [ ] Informar de forma transparente qué datos se registran.
-
-## Fase 6 — Manejo de errores y resiliencia
-
-- [ ] Reemplazar excepciones técnicas visibles por mensajes seguros para el
-  usuario.
-- [ ] Registrar internamente el detalle y un identificador de incidente.
-- [ ] Agregar timeouts, reintentos con backoff y circuit breaker para proveedores.
-- [ ] Implementar fallback entre Gemini y OpenAI cuando corresponda.
-- [ ] Incorporar health checks para aplicación, vectorstore y proveedor.
-- [ ] Probar recuperación ante reinicios y fallos parciales.
-
-## Fase 7 — Citaciones verificables
-
-- [ ] Guardar página de PDF, hoja de Excel, diapositiva, sección y posición del
-  fragmento durante la ingestión.
-- [ ] Mostrar el extracto exacto que fundamenta cada respuesta.
-- [ ] Permitir abrir la fuente en la ubicación correspondiente.
-- [ ] Diferenciar claramente fuente recuperada de interpretación generada.
-- [ ] Detectar respuestas con afirmaciones no respaldadas por una cita.
-
-## Fase 8 — Mejora de recuperación
-
-- [ ] Comparar diferentes tamaños y solapamientos de chunks mediante evaluación.
-- [ ] Incorporar búsqueda híbrida: similitud vectorial + coincidencia léxica/BM25.
-- [ ] Evaluar un reranker para reordenar los fragmentos recuperados.
-- [ ] Implementar eliminación de fragmentos redundantes.
-- [ ] Recuperar ventanas de contexto alrededor del fragmento relevante.
-- [ ] Explorar reformulación y expansión de consultas ambiguas.
-- [ ] Versionar índices según modelo de embeddings y configuración.
-- [ ] Implementar reindexación incremental y detección de documentos modificados.
-
-## Fase 9 — Observabilidad y analítica
-
-- [ ] Crear un panel con volumen de consultas, latencia, fallback, feedback y
-  errores.
-- [ ] Medir calidad por categoría documental.
-- [ ] Identificar preguntas frecuentes y vacíos de documentación.
-- [ ] Exportar métricas en un formato compatible con herramientas de monitoreo.
-- [ ] Agregar alertas por fallos, aumento de latencia o caída en la calidad.
-- [ ] Relacionar cada respuesta con la versión del prompt, índice y modelo usados.
-
-## Fase 10 — Persistencia y experiencia de usuario
-
-- [ ] Persistir conversaciones por usuario en una base de datos.
-- [ ] Permitir búsqueda, archivado y exportación de conversaciones.
-- [ ] Implementar filtros visibles por área documental.
-- [ ] Mejorar accesibilidad, navegación por teclado y experiencia móvil.
-- [ ] Incorporar estados de carga por etapa y cancelación de consultas.
-- [ ] Permitir feedback detallado y corrección sugerida por el usuario.
-
-## Fase 11 — Administración documental
-
-- [ ] Crear una interfaz segura para subir, revisar y eliminar documentos.
-- [ ] Validar tipo, tamaño y contenido de los archivos.
-- [ ] Mostrar estado de procesamiento e indexación.
-- [ ] Gestionar versiones y trazabilidad documental.
-- [ ] Permitir reindexación selectiva por documento o categoría.
-- [ ] Incorporar análisis antivirus o aislamiento para archivos no confiables.
-
-## Fase 12 — Evolución de infraestructura
-
-- [ ] Separar interfaz, servicio RAG y tareas de ingestión.
-- [ ] Incorporar una API backend para desacoplar Streamlit del núcleo.
-- [ ] Gestionar secretos mediante un servicio seguro de OCI o GitHub Environments.
-- [ ] Agregar backups y restauración de la base vectorial.
-- [ ] Crear ambientes separados de desarrollo, prueba y producción.
-- [ ] Añadir despliegues con rollback y verificación posterior.
-- [ ] Evaluar OCI Generative AI como tercer proveedor.
-
----
-
-## Criterios para considerar una versión apta para uso interno
-
-Antes de procesar documentos corporativos reales, el proyecto deberá contar como
-mínimo con:
-
-- autenticación y permisos por documento o área;
-- evaluación automática y métricas mínimas definidas;
-- pruebas contra prompt injection;
-- logs con privacidad y retención controlada;
-- citaciones precisas y verificables;
-- manejo seguro de errores;
-- backups, monitoreo y procedimiento de recuperación;
-- revisión legal y de protección de datos aplicable al contexto de uso.
+1. [ ] **Evaluación del RAG:** crear un conjunto de preguntas de referencia y medir recuperación, groundedness, exactitud de fuentes, fallback, latencia y costo.
+2. [ ] **Pruebas y calidad de código:** incorporar pruebas unitarias e integrales, mocks de proveedores, cobertura, linting, formateo y validación de tipos.
+3. [ ] **Seguridad frente a prompt injection:** tratar documentos como datos no confiables, reforzar el prompt y probar ataques directos e indirectos.
+4. [ ] **Autenticación y permisos:** agregar usuarios, roles, sesiones, rate limiting y autorización por área durante la recuperación.
+5. [ ] **Privacidad y logs:** anonimizar datos sensibles, permitir desactivar el registro de contenido y definir rotación y retención de logs.
+6. [ ] **Resiliencia y manejo de errores:** ocultar errores técnicos, agregar timeouts, reintentos, health checks y fallback entre proveedores.
+7. [ ] **Citaciones verificables:** guardar página, hoja, diapositiva o sección y permitir revisar el fragmento exacto utilizado.
+8. [ ] **Mejora de recuperación:** evaluar chunking, búsqueda híbrida, reranking, eliminación de duplicados y reindexación incremental.
+9. [ ] **Observabilidad:** crear métricas de calidad, uso, latencia, errores, feedback y costo por proveedor y versión del sistema.
+10. [ ] **Evolución del producto:** persistir conversaciones, mejorar accesibilidad, administrar documentos desde una interfaz segura y separar el núcleo RAG de la interfaz para facilitar su escalabilidad.
 
 ---
 
