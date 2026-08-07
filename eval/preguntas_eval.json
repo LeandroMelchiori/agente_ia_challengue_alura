@@ -1,0 +1,27 @@
+{
+  "descripcion": "Set de evaluación del agente. Cada caso tiene la pregunta y el/los documento(s) fuente que deberían recuperarse. Los casos con fuente vacía son 'fuera de alcance': el agente debe rechazarlos (no alucinar).",
+  "casos": [
+    {"pregunta": "¿Cuántos días de vacaciones me corresponden con 6 años de antigüedad?", "fuentes": ["politica_vacaciones_y_licencias.docx"]},
+    {"pregunta": "¿Cuántos días de licencia por matrimonio otorga la empresa?", "fuentes": ["politica_vacaciones_y_licencias.docx"]},
+    {"pregunta": "¿Qué comisión cobra MercadoPago por tarjeta de crédito?", "fuentes": ["tabla_comisiones_pasarelas.csv"]},
+    {"pregunta": "¿Cuál es el plazo de acreditación de Stripe con tarjeta local?", "fuentes": ["tabla_comisiones_pasarelas.csv"]},
+    {"pregunta": "¿Cuánto cuesta el plan Growth?", "fuentes": ["planes_y_precios.xlsx"]},
+    {"pregunta": "¿Cuántos comercios permite gestionar el plan Pro?", "fuentes": ["planes_y_precios.xlsx"]},
+    {"pregunta": "¿Cómo funciona la facturación automática contra ARCA?", "fuentes": ["manual_procesos_operativos.pdf"]},
+    {"pregunta": "¿Qué pasa si no se obtiene el CAE antes de la compra?", "fuentes": ["manual_procesos_operativos.pdf"]},
+    {"pregunta": "¿Qué datos personales recolecta la empresa?", "fuentes": ["politica_privacidad.md"]},
+    {"pregunta": "¿A qué correo escribo para solicitar la supresión de mis datos?", "fuentes": ["politica_privacidad.md"]},
+    {"pregunta": "¿Qué endpoints ofrece la API de TechRetail?", "fuentes": ["catalogo_api.json"]},
+    {"pregunta": "¿Cuál es el límite de peticiones por minuto de la API?", "fuentes": ["catalogo_api.json"]},
+    {"pregunta": "¿Qué presupuesto de capacitación tiene cada colaborador?", "fuentes": ["beneficios.html"]},
+    {"pregunta": "¿Cuál es la modalidad de trabajo en la empresa?", "fuentes": ["manual_onboarding_colaboradores.md"]},
+    {"pregunta": "¿A partir de qué monto un gasto requiere aprobación de Finanzas?", "fuentes": ["politica_gastos_y_reembolsos.md"]},
+    {"pregunta": "¿Cuál es la discrepancia objetivo del motor de conciliación?", "fuentes": ["procedimiento_conciliacion.docx"]},
+    {"pregunta": "¿Qué medios de pago puedo ofrecer en mi tienda?", "fuentes": ["faq_soporte.html"]},
+    {"pregunta": "¿Qué quedó fuera del alcance del proyecto?", "fuentes": ["alcance_proyecto.md"]},
+
+    {"pregunta": "¿Cuál es la receta de la pizza napolitana?", "fuentes": []},
+    {"pregunta": "¿Qué tiempo va a hacer mañana en Buenos Aires?", "fuentes": []},
+    {"pregunta": "¿Quién ganó el Mundial de fútbol 2022?", "fuentes": []}
+  ]
+}
