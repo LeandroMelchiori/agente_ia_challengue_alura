@@ -1,5 +1,6 @@
 # 🤖 TechRetAI — Asistente RAG Corporativo
 
+[![Tests](https://github.com/LeandroMelchiori/techretai_asistente_rag_corporativo/actions/workflows/ci.yml/badge.svg)](https://github.com/LeandroMelchiori/techretai_asistente_rag_corporativo/actions/workflows/ci.yml)
 [![Deploy a OCI](https://github.com/LeandroMelchiori/techretai_asistente_rag_corporativo/actions/workflows/deploy.yml/badge.svg)](https://github.com/LeandroMelchiori/techretai_asistente_rag_corporativo/actions/workflows/deploy.yml)
 
 > **TechRetAI** es un proyecto demostrativo que simula el asistente conversacional
@@ -52,17 +53,28 @@ suficientemente relevante.
 
 ## 🏗️ Arquitectura
 
-```text
-documentos/                 scripts/ingest.py            src/agent.py
-┌───────────────┐          ┌──────────────────┐        ┌───────────────────┐
-│ PDF Word XLSX │          │ 1. Extracción    │        │ 4. Recuperación   │
-│ PPTX MD CSV   │  ──────► │ 2. Limpieza      │ ─────► │ 5. Generación +   │
-│ JSON HTML     │          │ 3. Chunking +    │ Chroma │    citación de    │
-│ (7 categorías)│          │    embeddings    │  DB    │    fuentes        │
-└───────────────┘          └──────────────────┘        └───────────────────┘
-                                                               │
-                                                      app/streamlit_app.py
-                                                        (interfaz de chat)
+```mermaid
+flowchart LR
+    subgraph Indexacion["🗂️ Indexación (offline)"]
+        direction TB
+        D["Documentos<br/>PDF · Word · Excel · PPT<br/>MD · CSV · JSON · HTML"] --> E["Extracción<br/>+ limpieza"]
+        E --> C["Chunking"]
+        C --> EM["Embeddings"]
+        EM --> V[("ChromaDB<br/>base vectorial")]
+    end
+
+    subgraph Consulta["💬 Consulta (online)"]
+        direction TB
+        U(["👤 Colaborador"]) --> Q["Pregunta"]
+        Q --> QE["Embedding<br/>de la pregunta"]
+        QE --> BUS["Búsqueda semántica"]
+        BUS --> UMB{"¿Supera el<br/>umbral de<br/>relevancia?"}
+        UMB -->|No| FB["🚫 Fallback:<br/>'no encontré'"]
+        UMB -->|Sí| G["🤖 LLM (Gemini)<br/>genera la respuesta"]
+        G --> A["✅ Respuesta<br/>+ fuentes citadas"]
+    end
+
+    V -.recupera top-k.-> BUS
 ```
 
 Cada componente del pipeline vive en un módulo con una única responsabilidad:
@@ -78,6 +90,7 @@ Cada componente del pipeline vive en un módulo con una única responsabilidad:
 | Interfaz | `app/streamlit_app.py` |
 | Despliegue en OCI | `docs/deploy_oci.md`, `deploy/techretai.service`, `Dockerfile` |
 | CI/CD | `.github/workflows/deploy.yml` |
+| Tests y evaluación | `tests/`, `eval/evaluar.py` |
 | Registro de ejecución | `src/logging_utils.py`, `logs/consultas.jsonl` |
 
 ---
@@ -136,6 +149,54 @@ python -m scripts.preguntar "¿Cuántos días de vacaciones me corresponden?"
 
 ---
 
+## 🔬 Tests y evaluación
+
+**Tests automatizados** (unitarios, sin dependencias externas) que corren en CI
+en cada push — cubren limpieza y *chunking*, extractores de formato y la lógica
+del agente (fallback anti-alucinación y deduplicación de fuentes):
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+**Evaluación del RAG:** un set de casos (`eval/preguntas_eval.json`) con la
+fuente esperada de cada pregunta, más preguntas *fuera de alcance* que el agente
+debe rechazar. Mide la calidad, no solo que "funcione":
+
+```bash
+python -m eval.evaluar
+```
+
+| Métrica | Qué mide |
+|---|---|
+| **Hit@k** | ¿El documento correcto aparece entre los `k` recuperados? |
+| **MRR** | ¿Qué tan arriba aparece el documento correcto? |
+| **Rechazo correcto** | ¿Rechaza las preguntas que no están en la base? |
+
+---
+
+## 🧠 Decisiones técnicas
+
+- **RAG en lugar de *fine-tuning*:** los documentos internos cambian seguido. RAG
+  permite actualizar la base sin reentrenar y, sobre todo, da **trazabilidad**
+  (cada respuesta cita su fuente). Un modelo afinado sería más caro y opaco.
+- **Umbral de relevancia + fallback:** se prioriza **no alucinar** sobre responder
+  siempre. En dominios sensibles (Legal, RH, Finanzas) es preferible un "no
+  encontré esta información" antes que una respuesta inventada.
+- **ChromaDB como base vectorial:** embebida, sin infraestructura extra. La capa
+  está aislada en `src/vectorstore.py`, así que migrar a *pgvector* u *Oracle
+  23ai* si escalara es un cambio acotado.
+- **Gemini con capa de proveedor intercambiable:** tier gratuito con embeddings;
+  cambiar a OpenAI es una sola variable de entorno (`src/providers.py`).
+- **Chunking por párrafos con superposición:** preserva el contexto sin cortar
+  ideas; el conteo de tokens usa *tiktoken* con *fallback* local para no depender
+  de la red al indexar.
+- **VM + `systemd` en vez de Kubernetes:** el volumen no justifica orquestación;
+  simple, Always Free y sobrevive reinicios. El `Dockerfile` queda para portabilidad.
+
+---
+
 ## ⚙️ Configuración
 
 Todas las opciones se controlan por variables de entorno definidas en
@@ -167,6 +228,10 @@ techretai_asistente_rag_corporativo/
 │   ├── ingest.py              # Indexación
 │   └── preguntar.py           # Cliente CLI
 ├── app/streamlit_app.py       # Interfaz de chat
+├── tests/                     # Tests automatizados (pytest)
+├── eval/                      # Set y script de evaluación del RAG
+├── deploy/techretai.service   # Servicio systemd
+├── .github/workflows/         # CI (tests) + CD (deploy a OCI)
 ├── docs/deploy_oci.md         # Guía de despliegue
 ├── Dockerfile
 ├── requirements.txt
@@ -210,8 +275,8 @@ ruta.
 
 La evolución del proyecto se resume en diez mejoras prioritarias:
 
-1. [ ] **Evaluación del RAG:** crear un conjunto de preguntas de referencia y medir recuperación, groundedness, exactitud de fuentes, fallback, latencia y costo.
-2. [ ] **Pruebas y calidad de código:** incorporar pruebas unitarias e integrales, mocks de proveedores, cobertura, linting, formateo y validación de tipos.
+1. [x] **Evaluación del RAG:** conjunto de preguntas de referencia con métricas de recuperación (Hit@k, MRR) y rechazo correcto. _Pendiente: groundedness, latencia y costo._
+2. [x] **Pruebas y calidad de código:** pruebas unitarias con mocks de proveedores y CI en cada push. _Pendiente: cobertura, linting, formateo y tipos._
 3. [ ] **Seguridad frente a prompt injection:** tratar documentos como datos no confiables, reforzar el prompt y probar ataques directos e indirectos.
 4. [ ] **Autenticación y permisos:** agregar usuarios, roles, sesiones, rate limiting y autorización por área durante la recuperación.
 5. [ ] **Privacidad y logs:** anonimizar datos sensibles, permitir desactivar el registro de contenido y definir rotación y retención de logs.
